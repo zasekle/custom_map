@@ -10,16 +10,65 @@
 template<typename T, typename U>
 struct CustomMap {
 
-    //swap
-    //contains
-    //find
-
     [[nodiscard]] size_t size() const {
         return map_size;
     }
 
     [[nodiscard]] size_t empty() const {
         return map_size == 0;
+    }
+
+    bool contains(const T& key) {
+        if (!root) {
+            return false;
+        } else {
+            Node* current_node = root;
+
+            while (true) {
+                if (*current_node->key == key) {
+                    return true;
+                } else if (*current_node->key > key) {
+                    if (!current_node->left) {
+                        return false;
+                    } else {
+                        current_node = current_node->left;
+                    }
+                } else {
+                    if (!current_node->right) {
+                        return false;
+                    } else {
+                        current_node = current_node->right;
+                    }
+                }
+            }
+        }
+    }
+
+    std::unique_ptr<U> find(const T& key) {
+        if (!root) {
+            return nullptr;
+        } else {
+            Node* current_node = root;
+
+            while (true) {
+                if (*current_node->key == key) {
+                    std::unique_ptr<U> extracted_value = std::make_unique<U>(*current_node->value);
+                    return extracted_value;
+                } else if (*current_node->key > key) {
+                    if (!current_node->left) {
+                        return nullptr;
+                    } else {
+                        current_node = current_node->left;
+                    }
+                } else {
+                    if (!current_node->right) {
+                        return nullptr;
+                    } else {
+                        current_node = current_node->right;
+                    }
+                }
+            }
+        }
     }
 
     bool insert(const T& key, const U& value) {
@@ -33,14 +82,14 @@ struct CustomMap {
                 if (*current_node->key == key) {
                     return false;
                 } else if (*current_node->key > key) {
-                    if (current_node->left == nullptr) {
+                    if (!current_node->left) {
                         current_node->left = createNode(key, value);
                         return true;
                     } else {
                         current_node = current_node->left;
                     }
                 } else {
-                    if (current_node->right == nullptr) {
+                    if (!current_node->right) {
                         current_node->right = createNode(key, value);
                         return true;
                     } else {
@@ -51,7 +100,6 @@ struct CustomMap {
         }
     }
 
-    //TODO: allows for nullptr if no found I guess.
     std::unique_ptr<U> erase(const T& key) {
         if (empty()) {
             return nullptr;
@@ -60,44 +108,45 @@ struct CustomMap {
         Node** parent_node_field = nullptr;
         Node* current_node = root;
 
-        while (*current_node->key != key) {
-            if (current_node == nullptr) {
+        while (!current_node || *current_node->key != key) {
+            if (!current_node) {
                 return nullptr;
-            } else if (*current_node->key < key) {
-                parent_node_field = current_node->left;
+            } else if (*current_node->key > key) {
+                parent_node_field = &current_node->left;
                 current_node = current_node->left;
-            } else { // > (== was checked at start of loop)
-                parent_node_field = current_node->right;
+            } else { // < (== was checked at start of loop)
+                parent_node_field = &current_node->right;
                 current_node = current_node->right;
             }
         }
 
-//        root = nullptr;
-
         std::unique_ptr<U> extracted_value = std::move(current_node->value);
         map_size--;
-//        delete current_node;
 
         Node* new_node = nullptr;
         if (current_node->right && current_node->left) {
-            //TODO: need to, refactor the tree maybe?
+            new_node = current_node->right;
+
+            Node* left_most_node = current_node->right;
+            while (left_most_node->left) {
+                left_most_node = left_most_node->left;
+            }
+
+            left_most_node->left = current_node->left;
         } else if (current_node->right) {
             new_node = current_node->right;
         } else if (current_node->left) {
             new_node = current_node->left;
         }
 
-        *parent_node_field = new_node;
+        if (parent_node_field) {
+            *parent_node_field = new_node;
+        } else { // replaced node was root
+            root = new_node;
+        }
 
-        //TODO: delete current_node
-        //TODO: lower size b
-        //TODO: refactor tree to remove node
-        // root; if right exists, move right node to take root; if left exists, move left; else null it
-        // middle; if right exists, move right node to take root; if left exists, move left; else null it
-        // leaf
-
+        delete current_node;
         return extracted_value;
-
     }
 
     void print() {
@@ -108,7 +157,7 @@ struct CustomMap {
             std::vector<Node*> next;
 
             for (Node* node: prev) {
-                if (node != nullptr) {
+                if (node) {
                     next.emplace_back(node->left);
                     next.emplace_back(node->right);
                 }
@@ -121,7 +170,7 @@ struct CustomMap {
 
         for (const auto& node_level: v) {
             for (Node* node: node_level) {
-                if (node == nullptr) {
+                if (!node) {
                     std::cout << " null  ";
                 } else {
                     std::cout << '(' << *node->key << ',' << *node->value << ")  ";

@@ -2,33 +2,6 @@
 #include <map>
 #include "custom_map.h"
 
-struct ReadStuff {
-    int value = 0;
-
-    ReadStuff() {
-        std::cout << "Constructor\n";
-    }
-
-    ~ReadStuff() {
-        std::cout << "Destructor\n";
-    }
-
-    ReadStuff(const ReadStuff& c) {
-        std::cout << "Copy\n";
-        value = c.value;
-    }
-
-    ReadStuff(ReadStuff&& m)  noexcept {
-        std::cout << "Move\n";
-        value = m.value;
-    }
-
-    ReadStuff& operator=(const ReadStuff& c) {
-        std::cout << "Operator=\n";
-        value = c.value;
-        return *this;
-    }
-};
 
 int main() {
 
@@ -40,7 +13,13 @@ int main() {
     m.insert(9, 'd');
 
     m.print();
-//    std::cout << m.erase(12)->value << '\n';
+
+    auto exists = m.contains(1);
+    auto val = m.find(9);
+    std::cout << (exists ? "true" : "false") << '\n';
+    std::cout << (char)(val != nullptr ? *val : -1) << '\n';
+
+    m.print();
 
     return 0;
 }
